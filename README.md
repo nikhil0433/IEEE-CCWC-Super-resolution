@@ -103,6 +103,8 @@ RETRAIN_ESPCNN = False
 
 The expected checkpoint filenames are `cnn_best.weights.h5` and `espcnn_best.weights.h5`. Loading will fail if the files have not been saved in that directory. The notebook reconstructs each architecture before loading weights.
 
+**Which weights are evaluated?** `ModelCheckpoint(save_best_only=True)` saves the checkpoint with the lowest observed validation loss, including improvements smaller than `min_delta`. `EarlyStopping(min_delta=0.0001, patience=20, restore_best_weights=True)` uses the threshold to decide when to stop. After training, the notebook explicitly reloads the saved minimum-validation-loss checkpoint, which is the model used for all reported evaluations. In the recorded ESPCNN training run, early stopping restored epoch 43 internally, while the minimum-loss checkpoint was saved at epoch 63 and then reloaded. No retraining or metric changes are needed for this clarification.
+
 ## Results from the recorded Colab run
 
 ### Crack classification (3,000 test images)
@@ -134,10 +136,24 @@ These values compare reconstructed 128 × 128 images with their reference images
 | Crack-positive images correctly forwarded | 976 |
 | Crack-positive images missed | 24 |
 | Crack-negative images incorrectly forwarded | 7 |
-| Estimated forward-pass MAC reduction versus all-image ESPCNN | **46.15%** |
-| Measured median GPU inference-time reduction | **4.08%** |
+The 2,000-image joint test measures held-out routing behavior. Its crack-positive misses are included in the reported counts; it is not the larger-scale timing benchmark.
 
-The GPU timing result reflects five trials under the notebook's benchmark settings and excludes image decoding, file I/O, and downstream detection. A reduction in the number of super-resolution operations **does not establish reduced downstream crack-detection false alarms**.
+### Computational efficiency (10,000-image workload)
+
+| Metric | ESPCNN on all images | CNN + selective ESPCNN |
+| --- | ---: | ---: |
+| Total input images | 10,000 | 10,000 |
+| Images processed by CNN | 0 | 10,000 |
+| Images processed by ESPCNN | 10,000 | 4,927 |
+| Images bypassing ESPCNN | 0 | 5,073 |
+| Median inference time (seven trials) | 1.5261 s | 1.2313 s |
+| Forward-pass MACs | 851.313 billion | 459.467 billion |
+
+**Relative reductions for the selective framework:** 19.32% in median measured inference time and 46.03% in estimated MACs relative to applying ESPCNN to all 10,000 images.
+
+**Benchmark scope:** This uses the full selected 10,000-patch collection (including CNN/ESPCNN training, validation, and test images) for *inference timing*, not an independent test of predictive accuracy. Both workflows use the same decoded 32 × 32 inputs, a benchmark batch size of 32, two warm-up cycles, and seven repeated trials with alternating method order. CNN screening time is included in the selective workflow; image decoding, file I/O, and downstream detection are excluded from timing. The positive/negative distribution is balanced. The percentage is calculated from the two independently computed median times; latency can vary with hardware, GPU utilization, and batching.
+
+Reduced super-resolution operations **do not establish fewer downstream crack-detection false alarms**, which were not measured.
 
 ## Output files
 
@@ -148,7 +164,7 @@ The notebook saves results to the configured `RESULTS_DIR`. Key files include:
 - `Loss_Vs_Epochs.png`, `Accuracy_Vs_Epochs.png` — CNN training/validation curves.
 - `ESPCNN_MSE_Vs_Epochs.png`, `ESPCNN_PSNR_Vs_Epochs.png` — ESPCNN training/validation curves.
 - `cnn_test_predictions.csv`, `espcnn_test_per_image_metrics.csv` — test-level predictions and image-quality metrics.
-- `joint_pipeline_routing.csv`, `model_MACs_per_layer.csv`, `inference_timing_trials.csv` — routing, computational complexity, and timing results.
+- `joint_pipeline_routing.csv`, `inference_timing_10000_trials.csv`, `inference_timing_10000_summary.json` — routing and seven-trial 10,000-image inference benchmark results.
 - `FULL_EXPERIMENT_RESULTS.json` — consolidated experiment metrics and configuration information.
 
 Other CSV files record the sampled images and the train/validation/test assignments.
