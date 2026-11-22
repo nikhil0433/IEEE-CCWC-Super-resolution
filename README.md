@@ -33,7 +33,7 @@ The ESPCNN produces an enhanced RGB image; it does **not** perform crack segment
 
 | File | Description |
 | --- | --- |
-| [`CCWC2027_Full_CNN_ESPCNN_Colab(2).ipynb`](CCWC2027_Full_CNN_ESPCNN_Colab.ipynb) | End-to-end Google Colab experiment: dataset preparation, CNN and ESPCNN training, evaluation, plots, routing, MAC estimates, and inference-time benchmarks. |
+| [`CCWC2027_Full_CNN_ESPCNN_Colab.ipynb`](CCWC2027_Full_CNN_ESPCNN_Colab.ipynb) | End-to-end Google Colab experiment: dataset preparation, CNN and ESPCNN training, evaluation, plots, routing, MAC estimates, and inference-time benchmarks. |
 | `README.md` | Project overview and instructions. |
 
 The dataset, model checkpoints, and large result archives are **not required in the GitHub repository**; the notebook accesses the dataset and saves outputs using Google Drive.
